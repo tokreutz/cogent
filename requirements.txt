@@ -1,0 +1,3 @@
+pydantic
+pydantic-ai
+pydantic-ai-slim[logfire]
