@@ -2,3 +2,4 @@ pydantic
 pydantic-ai
 pydantic-ai-slim[logfire]
 pathspec
+prompt_toolkit>=3.0.47
