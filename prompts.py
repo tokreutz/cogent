@@ -215,7 +215,7 @@ The assistant used the todo list because:
 <example>
 User: Help me rename the function getCwd to getCurrentWorkingDirectory across my project
 Assistant: Let me first search through your codebase to find all occurrences of 'getCwd'.
-*Uses grep or search tools to locate all instances of getCwd in the codebase*
+*Uses search tools to locate all instances of getCwd in the codebase*
 Assistant: I've found 15 instances of 'getCwd' across 8 different files. Let me create a todo list to track these changes.
 *Creates todo list with specific items for each file that needs updating*
 

@@ -43,3 +43,50 @@ def test_count_format():
 def test_full_format():
     out = search(pattern='Alpha', path=TEST_DIR, format='full')
     assert 'class Alpha' in out
+
+
+def test_glob_narrowing(tmp_path):
+    root = tmp_path
+    (root / 'a.py').write_text('print("Alpha")\n')
+    (root / 'b.js').write_text('console.log("Alpha")\n')
+    out = search(pattern='Alpha', path=str(root), format='count', glob='*.py')
+    # Should only count occurrences in a.py
+    assert 'TOTAL:' in out
+    assert 'a.py' in out and 'b.js' not in out
+
+
+def test_gitignore_exclusion(tmp_path):
+    root = tmp_path
+    (root / '.gitignore').write_text('ignored.py\n')
+    (root / 'kept.py').write_text('print("Keep")\n')
+    (root / 'ignored.py').write_text('print("Keep")\n')
+    out = search(pattern='Keep', path=str(root), format='lines')
+    assert 'kept.py' in out and 'ignored.py' not in out
+
+
+def test_binary_skip(tmp_path):
+    root = tmp_path
+    (root / 'text.txt').write_text('PatternHere\n')
+    # Create binary file containing the pattern and a null byte
+    (root / 'bin.dat').write_bytes(b'\x00PatternHere\x00')
+    out = search(pattern='PatternHere', path=str(root), format='count')
+    # Should count only text file (1) and note skipped binary
+    assert 'TOTAL:1' in out
+    assert 'binary files' in out
+
+
+def test_invalid_regex(tmp_path):
+    (tmp_path / 'f.txt').write_text('hi')
+    out = search(pattern='[unclosed', path=str(tmp_path), format='count')
+    assert out.startswith('Error: invalid regex:')
+
+
+def test_no_matches_metadata(tmp_path):
+    # Create > MAX_FILES_SCANNED small files without pattern to trigger truncation then search absent pattern
+    from Tools.search_tool import MAX_FILES_SCANNED
+    for i in range(MAX_FILES_SCANNED + 10):
+        (tmp_path / f'f{i}.txt').write_text('nothing to see')
+    out = search(pattern='XYZ_NO_MATCH', path=str(tmp_path), format='lines')
+    assert 'No matches found' in out
+    # Since truncation occurs, metadata marker should appear
+    assert 'truncated file scan' in out

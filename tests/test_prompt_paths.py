@@ -72,7 +72,7 @@ def test_interactive_path_uses_prompt_async(monkeypatch, capsys):
     assert fake_session.calls == 1
     captured = capsys.readouterr().out
     # Ensure startup hint printed once
-    assert captured.count('Shift+Enter') == 1
+    assert captured.count('Esc+Enter') == 1
 
 def test_startup_hint_only_once(monkeypatch, capsys):
     project_root = Path(__file__).resolve().parent.parent
@@ -90,4 +90,4 @@ def test_startup_hint_only_once(monkeypatch, capsys):
     assert out1 == 'one' and out2 == 'two'
     captured = capsys.readouterr().out
     # Hint string should appear exactly once
-    assert captured.count('Shift+Enter') == 1
+    assert captured.count('Esc+Enter') == 1

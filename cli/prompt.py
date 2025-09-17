@@ -106,7 +106,7 @@ async def read_interactive(state: PromptState) -> str:
     except Exception:  # pragma: no cover
         pass
     if not state.startup_hint_shown:
-        print('(Shift+Enter for newline, Enter to send; history stored in .cogent/history)')
+        print('(Enter for newline, Esc+Enter to send; history stored in .cogent/history)')
         state.startup_hint_shown = True
     return await session.prompt_async()
 
@@ -127,7 +127,7 @@ async def get_user_input() -> str:
     if is_interactive(sys.stdin):
         # Show startup hint (once) before deciding which session factory to use
         if not state.startup_hint_shown:
-            print('(Shift+Enter for newline, Enter to send; history stored in .cogent/history)')
+            print('(Enter for newline, Esc+Enter to send; history stored in .cogent/history)')
             state.startup_hint_shown = True
         # Allow test monkeypatching via main.init_prompt_session by resolving dynamically
         try:

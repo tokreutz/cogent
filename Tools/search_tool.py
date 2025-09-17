@@ -31,9 +31,12 @@ Anti-patterns: jumping straight to full; using context to count occurrences; bro
 """
 
 DEFAULT_SKIP_DIRS = {
-    ".git","__pycache__","node_modules",".venv","venv",".mypy_cache",
-    ".pytest_cache","dist","build",".idea",".vscode","coverage","target"
+    ".git", "__pycache__", "node_modules", ".venv", "venv", ".mypy_cache",
+    ".pytest_cache", "dist", "build", ".idea", ".vscode", "coverage", "target"
 }
+
+MAX_FILES_SCANNED = 5000
+_BINARY_SNIFF_BYTES = 1024
 
 LINES_MAX = 200
 CONTEXT_LINES = 5
@@ -55,25 +58,38 @@ def _compile_gitignore(root: str) -> PathSpec | None:
         return None
 
 def _expand_globs(glob: str) -> List[str]:
-    if not glob:
-        return []
-    return [g.strip() for g in glob.split(',') if g.strip()]
+    return [g.strip() for g in glob.split(',') if g.strip()] if glob else []
 
-def _should_include(rel_path: str, fname: str, full: str, glob_patterns: List[str]) -> bool:
+def _matches_globs(rel_path: str, fname: str, full: str, glob_patterns: List[str]) -> bool:
     if not glob_patterns:
         return True
+    import fnmatch
     for gp in glob_patterns:
-        if re.fullmatch(gp.replace("**", ".*"), rel_path):
-            return True
-        import fnmatch
+        # Support ** via fnmatch (already handles)
         if fnmatch.fnmatch(rel_path, gp) or fnmatch.fnmatch(fname, gp) or fnmatch.fnmatch(full, gp):
             return True
     return False
 
-def _gather_files(root: str, glob_patterns: List[str], git_spec: PathSpec | None) -> List[str]:
+def _is_binary(path: str) -> bool:
+    try:
+        with open(path, 'rb') as fh:
+            chunk = fh.read(_BINARY_SNIFF_BYTES)
+        if b'\x00' in chunk:
+            return True
+    except Exception:
+        return False
+    return False
+
+def _gather_files(root: str, glob_patterns: List[str], git_spec: PathSpec | None) -> Tuple[List[str], bool, int]:
+    """Collect candidate text files.
+
+    Returns (files, truncated, binary_skipped)
+    """
     if os.path.isfile(root):
-        return [root]
+        return ([root], False, 0)
     out: List[str] = []
+    truncated = False
+    binary_skipped = 0
     root_is_dir = os.path.isdir(root)
     for dirpath, dirs, files in os.walk(root):
         dirs[:] = [d for d in dirs if d not in DEFAULT_SKIP_DIRS]
@@ -82,12 +98,16 @@ def _gather_files(root: str, glob_patterns: List[str], git_spec: PathSpec | None
             rel = os.path.relpath(full, root) if root_is_dir else fname
             if git_spec and git_spec.match_file(rel):
                 continue
-            if not _should_include(rel, fname, full, _expand_globs(glob='') if glob_patterns is None else glob_patterns):
+            if not _matches_globs(rel, fname, full, glob_patterns):
                 continue
-            if glob_patterns and not _should_include(rel, fname, full, glob_patterns):
+            if _is_binary(full):
+                binary_skipped += 1
                 continue
             out.append(full)
-    return out
+            if len(out) >= MAX_FILES_SCANNED:
+                truncated = True
+                return out, truncated, binary_skipped
+    return out, truncated, binary_skipped
 
 def _scan_files(files: List[str], pattern: str, flags: int) -> Dict[str, List[Tuple[int, str]]]:
     compiled = re.compile(pattern, flags)
@@ -202,24 +222,45 @@ def search(
 
     glob_patterns = _expand_globs(glob)
     gitignore_spec = _compile_gitignore(path)
-    candidate_files = _gather_files(path, glob_patterns, gitignore_spec)
+    candidate_files, files_truncated, binary_skipped = _gather_files(path, glob_patterns, gitignore_spec)
     if not candidate_files:
         return 'No matches found' if chosen != 'count' else '0'
-
-    flags = re.MULTILINE | (re.IGNORECASE if ignore_case else 0)
-    matches = _scan_files(candidate_files, pattern, flags)
+    try:
+        flags = re.MULTILINE | (re.IGNORECASE if ignore_case else 0)
+        matches = _scan_files(candidate_files, pattern, flags)
+    except re.error as e:
+        return f"Error: invalid regex: {e}"
     if not matches:
-        return 'No matches found' if chosen != 'count' else '0'
+        base = 'No matches found' if chosen != 'count' else '0'
+        # Append scan metadata if relevant
+        meta_bits = []
+        if files_truncated:
+            meta_bits.append(f"[truncated file scan at {MAX_FILES_SCANNED}]")
+        if binary_skipped:
+            meta_bits.append(f"[skipped {binary_skipped} binary files]")
+        if meta_bits:
+            return base + ' ' + ' '.join(meta_bits)
+        return base
 
     if chosen == 'lines':
-        return _format_lines(matches)
-    if chosen == 'context':
-        return _format_context(matches)
-    if chosen == 'count':
-        return _format_count(matches)
-    if chosen == 'full':
-        return _format_full(matches)
-    return 'No matches found'
+        out = _format_lines(matches)
+    elif chosen == 'context':
+        out = _format_context(matches)
+    elif chosen == 'count':
+        out = _format_count(matches)
+    elif chosen == 'full':
+        out = _format_full(matches)
+    else:
+        out = 'No matches found'
+
+    meta_bits = []
+    if files_truncated:
+        meta_bits.append(f"[truncated file scan at {MAX_FILES_SCANNED}]")
+    if binary_skipped:
+        meta_bits.append(f"[skipped {binary_skipped} binary files]")
+    if meta_bits:
+        out = out + ("\n" if '\n' not in out[-1:] else '') + " ".join(meta_bits)
+    return out
 
 search_tool_def = ToolDefinition(
     fn=search,

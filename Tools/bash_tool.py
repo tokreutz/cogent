@@ -26,7 +26,7 @@ Usage notes:
   - You can specify an optional timeout in milliseconds (up to 600000ms / 10 minutes). If not specified, commands will timeout after 120000ms (2 minutes).
   - It is very helpful if you write a clear, concise description of what this command does in 5-10 words.
   - If the output exceeds 30000 characters, output will be truncated before being returned to you.
-  - VERY IMPORTANT: You MUST avoid using search commands like `find` and `grep`. Instead use Grep, Glob, or Task to search. You MUST avoid read tools like `cat`, `head`, `tail`, and `ls`, and use Read and LS to read files.
+    - VERY IMPORTANT: You MUST avoid using search commands like `find` and `grep`. Instead use Search, Glob, or Task to search. You MUST avoid read tools like `cat`, `head`, `tail`, and `ls`, and use Read and LS to read files.
  - If you _still_ need to run `grep`, STOP. ALWAYS USE ripgrep at `rg` first, which all Cogent users have pre-installed.
   - When issuing multiple commands, use the ';' or '&&' operator to separate them. DO NOT use newlines (newlines are ok in quoted strings).
   - Try to maintain your current working directory throughout the session by using absolute paths and avoiding usage of `cd`. You may use `cd` if the User explicitly requests it.
@@ -164,7 +164,7 @@ def bash(ctx: RunContext[AgentDeps], command: str, timeout_ms: int = None) -> st
         if re.search(rf"(^|\s){re.escape(fcmd)}(\s|$|;|&&|\||\))", command):
             return (
                 f"Error: use of `{fcmd}` is not allowed in this tool. "
-                "Please use Grep, Glob, Task, Read, or LS tools instead."
+                "Please use Search, Glob, Task, Read, or LS tools instead."
             )
 
     # Detect unquoted absolute/relative paths that contain spaces.

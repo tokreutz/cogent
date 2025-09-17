@@ -49,7 +49,7 @@ The assistant used the todo list because:
 <example>
 User: Help me rename the function getCwd to getCurrentWorkingDirectory across my project
 Assistant: Let me first search through your codebase to find all occurrences of 'getCwd'.
-*Uses grep or search tools to locate all instances of getCwd in the codebase*
+*Uses search tools to locate all instances of getCwd in the codebase*
 Assistant: I've found 15 instances of 'getCwd' across 8 different files. Let me create a todo list to track these changes.
 *Creates todo list with specific items for each file that needs updating*
 
@@ -189,8 +189,6 @@ def todo_write(todos: list[TodoItem] = None) -> str:
     Returns:
         str: A summary message indicating the updated TODO list status or an error message on failure.
     """
-    print("Invoked todo_write with todos:", todos)
-
     if todos is None:
         todos = []
 
@@ -218,12 +216,10 @@ def todo_write(todos: list[TodoItem] = None) -> str:
                 for todo in completed_todos:
                     content += f"- [x] {todo.description} (ID: `{todo.id}`)\n"
                 content += "\n"
-        print(content)
         status_summary = f"📊 {len(pending_todos)} pending, {len(in_progress_todos)} in progress, {len(completed_todos)} completed"
         return f"Updated TODO list\n{status_summary}"
         
     except Exception as e:
-        print(f"Error writing TODO list: {e}")
         return f"Error writing TODO list: {e}"
 
 

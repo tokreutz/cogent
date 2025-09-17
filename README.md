@@ -8,7 +8,7 @@ A Python based AI coding agent using Pydantic AI for agentic scaffolding.
 
 Current functionality:
 - Single chat loop with history
-  - Multi-line input with Shift+Enter (prompt_toolkit)
+  - Multi-line input (Enter inserts newline, Esc+Enter submits)
   - Line-edit prompt history (for arrow key recall) stored at `.cogent/history` (add to .gitignore if undesired)
   - Full conversation transcripts now archived per session in `.cogent/sessions/<session_id>.json`
     - Schema v1: flattened entries list with roles: system, user, assistant, tool_call, tool; includes per-response token usage and aggregate totals.
@@ -17,8 +17,7 @@ Current functionality:
   - write (creates or overwrites files safely)
   - edit (exact string replacement with uniqueness safeguards)
   - ls (absolute path listing with ignore patterns)
-  - grep (ripgrep wrapper with regex, glob, and type filtering)
-  - search (minimal structured code search: count|lines|context|full in escalation order)
+  - search (ripgrep-backed regex/glob/type filtering + minimal structured code search: count|lines|context|full in escalation order)
   - glob (mtime-sorted pattern matching)
 - Tools for advanced use
   - bash (persistent cwd, restricted from using grep/find/cat/head/tail/ls)
@@ -32,9 +31,9 @@ next steps:
 - your name it
 
 ## Multi-line Input
-The CLI uses `prompt_toolkit` to support multi-line editing:
-- Press `Alt+Enter` to insert a newline.
-- Press `Enter` to submit.
+The CLI uses `prompt_toolkit` to support multi-line editing with the following bindings:
+- Press `Enter` to insert a newline.
+- Press `Esc+Enter` to submit.
 - Line-edit history is persisted per project in `.cogent/history`.
 - Each interactive run creates / updates a session transcript JSON under `.cogent/sessions/`.
   - Session JSON schema v1 fields: `schema_version`, `session_id`, `started_at`, `updated_at`, `message_count` (original request/response objects), `entry_count` (flattened parts), `total_input_tokens`, `total_output_tokens`, `messages` (flattened ordered entries with roles and optional usage/tool metadata).

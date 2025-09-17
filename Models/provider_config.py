@@ -1,7 +1,8 @@
 import json
 import os
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Any
+from pydantic import BaseModel, Field, ValidationError, field_validator, ConfigDict
 from pydantic_ai.models.openai import Model, OpenAIChatModel, OpenAIResponsesModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
@@ -68,16 +69,68 @@ _DEFAULT_CONFIG_JSON = {
 }
 
 
-def _coerce_provider(obj: dict) -> ProviderSpec:
-    return ProviderSpec(
-        name=obj["name"],
-        type=obj.get("type", "openai"),
-        base_url=obj["base_url"],
-        api_key_env=obj["api_key_env"],
-        api_key_optional=bool(obj.get("api_key_optional", False)),
-        models=list(obj.get("models", [])),
-        default_model=obj.get("default_model"),
-    )
+class _ProviderSpecModel(BaseModel):
+    name: str
+    type: str = Field(default="openai")
+    base_url: str
+    api_key_env: str
+    api_key_optional: bool = False
+    models: List[str] = Field(default_factory=list)
+    default_model: Optional[str] = None
+
+    model_config = ConfigDict(extra='forbid')
+
+    @field_validator('type')
+    @classmethod
+    def _valid_type(cls, v: str) -> str:
+        if v not in {"openai", "openai-compatible"}:
+            raise ValueError(f"Unsupported provider type '{v}'")
+        return v
+
+    @field_validator('api_key_env')
+    @classmethod
+    def _env_name(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("api_key_env must be non-empty")
+        return v
+
+    @field_validator('default_model')
+    @classmethod
+    def _default_in_models(cls, v: Optional[str], info):  # info will have data in .data in v2 after previous validators
+        models = info.data.get('models') if hasattr(info, 'data') else None  # fallback if API changes
+        models = models or []
+        if v and models and v not in models:
+            raise ValueError(f"default_model '{v}' not present in models list")
+        if not models and not v:
+            raise ValueError("Provider must specify either models list or default_model")
+        return v
+
+    def to_dataclass(self) -> ProviderSpec:
+        return ProviderSpec(
+            name=self.name,
+            type=self.type,
+            base_url=self.base_url,
+            api_key_env=self.api_key_env,
+            api_key_optional=self.api_key_optional,
+            models=list(self.models),
+            default_model=self.default_model,
+        )
+
+
+class _ProvidersConfigModel(BaseModel):
+    providers: List[_ProviderSpecModel]
+    model_config = ConfigDict(extra='forbid')
+
+    def to_dataclass(self) -> ProvidersConfig:
+        return ProvidersConfig(providers=[p.to_dataclass() for p in self.providers])
+
+
+def _parse_with_validation(obj: dict) -> ProvidersConfig:
+    try:
+        model = _ProvidersConfigModel(**obj)
+    except ValidationError as e:  # pragma: no cover - exercised via tests with invalid configs potentially later
+        raise RuntimeError(f"Invalid providers configuration: {e}")
+    return model.to_dataclass()
 
 
 def load_providers_config(path: Optional[str] = None) -> ProvidersConfig:
@@ -100,8 +153,7 @@ def load_providers_config(path: Optional[str] = None) -> ProvidersConfig:
             print("[providers] providers.json not found – using built-in defaults")
             setattr(load_providers_config, '_warned_missing', True)
         data = _DEFAULT_CONFIG_JSON
-    providers = [_coerce_provider(p) for p in data.get("providers", [])]
-    return ProvidersConfig(providers=providers)
+    return _parse_with_validation(data)
 
 
 def resolve_provider(provider_name: Optional[str] = None, model_name: Optional[str] = None) -> Tuple[ProviderSpec, str]:

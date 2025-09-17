@@ -23,7 +23,7 @@ async def task(ctx: RunContext[AgentDeps], description: str, prompt: str, subage
     Returns:
         str: The resulting output produced by the sub-agent, or an error message if execution failed.
     """
-    print(f"Launching sub-agent of type '{subagent_type}' to perform task: {description}")
+    # Removed direct print side-effect; rely on returned output only.
 
     # Load available sub-agent definitions from disk
     sub_agent_defs = load_sub_agent_definitions()
