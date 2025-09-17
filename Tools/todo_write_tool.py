@@ -194,21 +194,6 @@ def todo_write(todos: list[TodoItem] = None) -> str:
     if todos is None:
         todos = []
 
-    for todo in todos:
-        valid_statuses = ['pending', 'in_progress', 'completed']
-        if todo.state not in valid_statuses:
-            print(f"Error: todo status must be one of {valid_statuses}")
-            return f"Error: todo status must be one of {valid_statuses}"
-        if not todo.description.strip():
-            print("Error: todo description cannot be empty")
-            return "Error: todo description cannot be empty"
-
-    # Check that only one task is in_progress at a time
-    in_progress_count = sum(1 for todo in todos if todo.state == 'in_progress')
-    if in_progress_count > 1:
-        print("Error: only one task can be 'in_progress' at a time")
-        return "Error: only one task can be 'in_progress' at a time"
-
     try:
         # Create formatted todo list content
         content = "# TODO List\n\n"
@@ -242,7 +227,6 @@ def todo_write(todos: list[TodoItem] = None) -> str:
         return f"Error writing TODO list: {e}"
 
 
-# Export a ToolDefinition preserving the original detailed usage prompt
 todo_write_tool_def = ToolDefinition(
     fn=todo_write,
     usage_system_prompt=TODO_WRITE_TOOL_SYSTEM_PROMPT,
