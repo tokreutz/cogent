@@ -3,6 +3,9 @@ import sys
 import re
 from pathlib import Path
 from dataclasses import dataclass
+from typing import Optional
+from Models.provider_config import list_available_models
+from Models.model_state import save_last_selection
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.key_binding import KeyBindings
@@ -14,6 +17,9 @@ class PromptState:
     startup_hint_shown: bool = False
     piped_lines: list[str] | None = None
     piped_index: int = 0
+    selected_provider: Optional[str] = None
+    selected_model: Optional[str] = None
+    model_switch_requested: bool = False  # flag for runner
 
 _PROMPT_STATE: PromptState | None = None
 
@@ -32,6 +38,18 @@ def _ensure_cogent_dir() -> Path:
     except Exception:  # pragma: no cover - unusual filesystem failure
         raise RuntimeError("Failed to create .cogent directory for history")
     return base
+
+
+def _render_prompt() -> str:
+    state = _get_state()
+    model = state.selected_model
+    if model:
+        # Shorten extremely long model names for display
+        display = model
+        if len(display) > 40:
+            display = display[:37] + '...'
+        return f'({display}) > '
+    return '> '
 
 
 def init_prompt_session() -> PromptSession:
@@ -56,7 +74,7 @@ def init_prompt_session() -> PromptSession:
         event.current_buffer.insert_text("    ")
 
     session = PromptSession(
-        '> ',
+        _render_prompt(),
         history=FileHistory(str(history_file)),
         multiline=True,
         key_bindings=kb,
@@ -82,6 +100,11 @@ def load_piped_lines(stdin) -> list[str]:
 
 async def read_interactive(state: PromptState) -> str:
     session = init_prompt_session()
+    # Update prompt each time in case model changed
+    try:
+        session.message = _render_prompt()  # type: ignore[attr-defined]
+    except Exception:  # pragma: no cover
+        pass
     if not state.startup_hint_shown:
         print('(Shift+Enter for newline, Enter to send; history stored in .cogent/history)')
         state.startup_hint_shown = True
@@ -102,6 +125,26 @@ def read_piped_line(state: PromptState) -> str:
 async def get_user_input() -> str:
     state = _get_state()
     if is_interactive(sys.stdin):
+        # Show startup hint (once) before deciding which session factory to use
+        if not state.startup_hint_shown:
+            print('(Shift+Enter for newline, Enter to send; history stored in .cogent/history)')
+            state.startup_hint_shown = True
+        # Allow test monkeypatching via main.init_prompt_session by resolving dynamically
+        try:
+            import main as _main  # type: ignore
+            if hasattr(_main, 'init_prompt_session') and _main.init_prompt_session is not init_prompt_session:  # type: ignore
+                # Replace local cached session if different factory is provided
+                session = _main.init_prompt_session()  # type: ignore
+                if session is not _PROMPT_SESSION:
+                    # Only show hint when using local creation path; tests patching bypass can still show once
+                    pass
+                try:
+                    session.message = _render_prompt()  # type: ignore[attr-defined]
+                except Exception:  # pragma: no cover
+                    pass
+                return await session.prompt_async()
+        except Exception:  # pragma: no cover - fallback silently
+            pass
         return await read_interactive(state)
     return read_piped_line(state)
 
@@ -129,6 +172,45 @@ def process_slash_commands(user_text: str) -> str:
     if not match:
         return user_text
     command = match.group(1)
+
+    # Special interactive /model command
+    if command == 'model':
+        state = _get_state()
+        pairs = list_available_models()
+        if not pairs:
+            print('[model] No models available')
+            return ''
+        # Display numbered list
+        print('Available models:')
+        for idx, (prov, model) in enumerate(pairs, start=1):
+            marker = ''
+            if prov == state.selected_provider and model == state.selected_model:
+                marker = ' (current)'
+            print(f"  {idx}. {prov}:{model}{marker}")
+        # Prompt for selection
+        while True:
+            try:
+                choice = input('Select number (or blank to cancel): ').strip()
+            except EOFError:  # pragma: no cover - unlikely interactive edge
+                return ''
+            if choice == '':
+                return ''
+            if choice.isdigit():
+                num = int(choice)
+                if 1 <= num <= len(pairs):
+                    prov, model = pairs[num - 1]
+                    state.selected_provider = prov
+                    state.selected_model = model
+                    try:
+                        save_last_selection(prov, model)
+                    except Exception:  # pragma: no cover
+                        pass
+                    state.model_switch_requested = True
+                    print(f"[model] Switched to {prov}:{model}. Conversation context will reset.")
+                    return ''  # no message passed to agent
+            print(f"Invalid selection. Enter 1-{len(pairs)} or blank to cancel.")
+
+    # Default: treat as markdown command insertion
     commands_dir = os.path.join(os.getcwd(), '.cogent', 'commands')
     if not os.path.exists(commands_dir):
         return user_text

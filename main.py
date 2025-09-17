@@ -13,6 +13,7 @@ from cli.prompt import (
 )
 from cli.runner import run_loop as _run_loop
 import asyncio
+import sys  # exposed for tests that patch main.sys.stdin
 
 async def main():  # kept for backward compatibility
     await _run_loop()

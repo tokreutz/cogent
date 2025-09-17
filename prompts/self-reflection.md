@@ -1,8 +1,25 @@
-# Self Reflcetion
-Go over the chat history and analyse the interaction between the assistant and the user. Focus on miscommunication between the user and the assistant. Understand the root cause of the misunderstandings and identify what information was missing in order to have a commom understanding.
+# Self-Reflection
 
-Then formulate a process for ensuring appropriate context is in place to not end up in similar misunderstandings in the future. The end goal should be to produce a set of rules that could be included in the copilot-instructions.md file so that the assistant workflow is improved and improve the assistant user interaction and lead to a better outcome faster.
+Begin with a concise checklist (3-7 bullets) outlining the main sub-tasks you will perform in this review.
 
-The resulting instructions should consider all existing and new instructions holistically and not contain any conflicting or ambigous rules. If there are important rules that may conflict, order them from most to least important.
+Review the chat history to analyze interactions between the assistant and the user.
 
-Afterwards, update the copilot-instructions.md file with the latest rules.
+## Misunderstandings
+- Highlight any miscommunications or misunderstandings.
+- Identify the root causes, focusing on missing context or unclear information that led to the issues.
+- Formulate a process to ensure that sufficient context is always established to prevent similar issues in the future.
+- Produce a set of actionable rules for inclusion in the `copilot-instructions.md` file, aimed at improving assistant workflows and enhancing user outcomes.
+
+## Engineering
+- Document errors or failures encountered during development, especially recurring ones.
+- Reflect on the missing context that could have prevented these errors.
+- Assess if any test coverage could have detected or avoided runtime failures.
+- Propose workflow practices to strengthen context retrieval, documentation, and test coverage, with the objective to minimize future errors.
+
+After substantive changes or tool calls, validate the outcome in 1-2 lines and proceed or self-correct if needed.
+
+# Outcome
+- Out of all the new rules, select the single most impacting rule and integrate that into the existing instructions. Ensure that all instructions are harmonized; if prioritization is needed, clearly order rules from most to least important.
+- Update the `copilot-instructions.md` file to reflect the latest, unified rules.
+
+Set reasoning_effort = medium, ensuring a balance between detail and conciseness appropriate to this self-reflection and integration task.

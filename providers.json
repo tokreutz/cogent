@@ -1,0 +1,28 @@
+{
+  "providers": [
+    {
+      "name": "lmstudio",
+      "type": "openai-compatible",
+      "base_url": "http://localhost:1234/v1",
+      "api_key_env": "LMSTUDIO_API_KEY",
+      "api_key_optional": true,
+      "models": [
+        "qwen3-coder-30b-a3b-instruct-mlx@6bit"
+      ],
+      "default_model": "qwen3-coder-30b-a3b-instruct-mlx@6bit"
+    },
+    {
+      "name": "openai",
+      "type": "openai",
+      "base_url": "https://api.openai.com/v1",
+      "api_key_env": "OPENAI_API_KEY",
+      "api_key_optional": false,
+      "models": [
+        "gpt-5-mini",
+        "gpt-5",
+        "gpt-5-codex"
+      ],
+      "default_model": "gpt-5-codex"
+    }
+  ]
+}

@@ -1,17 +1,24 @@
+import os
 from pydantic_ai import Agent, RunContext
-from pydantic_ai.models.openai import OpenAIChatModel
-from pydantic_ai.providers.openai import OpenAIProvider
+from Models.provider_config import build_chat_model
+from Models.model_state import load_last_selection
 
 from Toolsets.common_agent_toolset import common_agent_toolset, common_agent_tool_definitions
 from Toolsets.root_agent_toolset import root_agent_toolset, root_agent_tool_definitions
 from prompts import MAIN_SYSTEM_PROMPT
 from Models.agent_deps import AgentDeps
 
-def create_main_agent() -> Agent[AgentDeps]:
-    model = OpenAIChatModel(
-        "qwen3-coder-30b-a3b-instruct-mlx@6bit",
-        provider=OpenAIProvider(api_key='api-key', base_url="http://localhost:1234/v1")
-    )
+def create_main_agent(provider_name: str | None = None, model_name: str | None = None) -> Agent[AgentDeps]:
+    # If not explicitly provided and no environment override, attempt to load last persisted selection
+    if not provider_name and not model_name and 'MODEL_PROVIDER' not in os.environ and 'MODEL_NAME' not in os.environ:
+        try:
+            sel = load_last_selection()
+            if sel:
+                provider_name = sel.provider
+                model_name = sel.model
+        except Exception:  # pragma: no cover
+            pass
+    model = build_chat_model(provider_name=provider_name, model_name=model_name)
 
     agent = Agent(
         model=model,
