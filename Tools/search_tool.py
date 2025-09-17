@@ -7,74 +7,27 @@ from pathspec.patterns.gitwildmatch import GitWildMatchPattern
 
 from Models.tool_definition import ToolDefinition
 
-BETTER_GREP_SYSTEM_PROMPT = """Minimal code search (ordered from least to most contextual output).
+SEARCH_SYSTEM_PROMPT = """Minimal code search (least -> most context outputs).
 
-FORMAT ORDER (always start as early in the list as possible):
-    1. count   : Aggregate scope: TOTAL + per-file line-match counts (top 50). Fast breadth view.
-    2. lines   : Precise occurrences: file:line:code (cap 200 lines). For enumerating usages or planning edits.
-    3. context : Local neighborhoods: 5 lines before/after each match (cap 50 blocks). For semantic understanding pre-change.
-    4. full    : Full file bodies (up to 10 files, size caps). Only for imminent multi-line refactors after narrowing scope.
+Call: search(pattern, path='.', format='count', glob='', ignore_case=false)
 
-RATIONALE: Each later format strictly adds more surrounding information. Escalate only if the previous format leaves unanswered questions.
+Formats:
+  1. count   : TOTAL + per-file line counts (top 50). Use first for breadth & prioritization.
+  2. lines   : file:line:code (cap 200). Enumerate occurrences / plan edits.
+  3. context : 5 lines before/after (cap 50 blocks). Understand semantics without full files.
+  4. full    : Up to 10 whole files (size caps). Only for imminent multi-line refactor after narrowing.
 
-FILTERING: Optional `glob` (comma separated, supports **). Use to narrow early: glob="src/**/*.py,tests/**/*.py" | glob="**/service/*.ts" | glob="*.md".
-IGNORE CASE: Use ignore_case=true only when mixed case patterns are expected.
+Escalate only if prior format insufficient. Refine with glob before escalating if truncated.
 
-TRUNCATION: Explicit bracketed markers indicate partial output (e.g., [truncated file list at 50], [truncated at 200 matches]). If you see one, you may need a narrower glob or a refined pattern.
+Truncation markers explicitly indicate partial results.
 
-EXAMPLES:
-1. count
-     better_grep(pattern="deprecated_func", format="count") ->
-         TOTAL:37
-         8:src/legacy/adapter.py
-         5:src/legacy/mapper.py
-         4:tests/test_adapter.py
-         ...
-     Use to prioritize high-impact files.
+Decision quick map:
+  Scope sizing -> count
+  Need exact line numbers -> lines
+  Need local logic -> context
+  Need full file bodies -> full
 
-2. lines
-     better_grep(pattern="foo_bar\\(", format="lines") ->
-         src/api/router.py:87:self.foo_bar(request)
-         src/core/worker.py:142:result = foo_bar(job)
-         tests/test_worker.py:55:foo_bar(mock_job)
-     Provides line numbers for targeted edits/renames. Truncation ends with [truncated at 200 matches].
-
-3. context
-     better_grep(pattern="RETRY_POLICY", format="context") -> snippet blocks:
-         FILE: src/config/retry.py
-         ---
-                 18: MAX_RETRY = 5
-         =>  19: RETRY_POLICY = {"max": MAX_RETRY, "backoff": 2}
-                 20: DEFAULT_TIMEOUT = 30
-
-         FILE: src/job/runner.py
-         ---
-                 44: from config.retry import RETRY_POLICY
-         =>  45: policy = RETRY_POLICY.copy()
-                 46: policy["attempt"] = attempt
-     Semantic inspection without full file noise.
-
-4. full
-     better_grep(pattern="class ConfigBuilder", format="full", glob="src/config/*.py") ->
-         FILE: src/config/builder.py
-         ---
-         class ConfigBuilder:
-                 ...
-         [truncated file content at 20000 chars]  # only if large
-     Only after count/lines/context clarified scope.
-
-ANTI-PATTERNS:
-    - Jumping straight to full.
-    - Using context to count matches (use count or lines).
-    - Broad pattern + truncation notice: refine pattern or add glob before escalating.
-
-DECISION QUICK MAP:
-    Sizing -> count
-    Need exact lines -> lines
-    Need surrounding logic -> context
-    Need whole file(s) for refactor -> full
-
-If earlier format answers the question, DO NOT escalate.
+Anti-patterns: jumping straight to full; using context to count occurrences; broad pattern with truncation (refine or add glob first).
 """
 
 DEFAULT_SKIP_DIRS = {
@@ -82,7 +35,6 @@ DEFAULT_SKIP_DIRS = {
     ".pytest_cache","dist","build",".idea",".vscode","coverage","target"
 }
 
-# Format policy constants
 LINES_MAX = 200
 CONTEXT_LINES = 5
 CONTEXT_BLOCKS_MAX = 50
@@ -111,7 +63,7 @@ def _should_include(rel_path: str, fname: str, full: str, glob_patterns: List[st
     if not glob_patterns:
         return True
     for gp in glob_patterns:
-        if re.fullmatch(gp.replace("**", ".*"), rel_path):  # simple fallback
+        if re.fullmatch(gp.replace("**", ".*"), rel_path):
             return True
         import fnmatch
         if fnmatch.fnmatch(rel_path, gp) or fnmatch.fnmatch(fname, gp) or fnmatch.fnmatch(full, gp):
@@ -130,7 +82,9 @@ def _gather_files(root: str, glob_patterns: List[str], git_spec: PathSpec | None
             rel = os.path.relpath(full, root) if root_is_dir else fname
             if git_spec and git_spec.match_file(rel):
                 continue
-            if not _should_include(rel, fname, full, glob_patterns):
+            if not _should_include(rel, fname, full, _expand_globs(glob='') if glob_patterns is None else glob_patterns):
+                continue
+            if glob_patterns and not _should_include(rel, fname, full, glob_patterns):
                 continue
             out.append(full)
     return out
@@ -179,7 +133,6 @@ def _format_context(matches: Dict[str, List[Tuple[int, str]]]) -> str:
             added += 1
     return "\n\n".join(blocks) if blocks else "No matches found"
 
-
 def _format_count(matches: Dict[str, List[Tuple[int, str]]]) -> str:
     counts = [(f, len(v)) for f, v in matches.items()]
     counts.sort(key=lambda x: (-x[1], x[0]))
@@ -192,7 +145,6 @@ def _format_count(matches: Dict[str, List[Tuple[int, str]]]) -> str:
     if truncated:
         lines.append(f"[truncated file list at {COUNT_FILES_MAX}]")
     return "\n".join(lines) if counts else "0"
-
 
 def _format_full(matches: Dict[str, List[Tuple[int, str]]]) -> str:
     files = sorted(matches.keys())[:FULL_FILES_MAX]
@@ -223,8 +175,7 @@ def _format_full(matches: Dict[str, List[Tuple[int, str]]]) -> str:
         out += f"\n\n[truncated file list at {FULL_FILES_MAX}]"
     return out
 
-
-def better_grep(
+def search(
     pattern: str,
     path: str = '.',
     format: str = 'count',
@@ -234,7 +185,7 @@ def better_grep(
     """Structured code search with fixed-format policies.
 
     Args:
-        pattern: Required regex (Python). Keep it focused.
+        pattern: Required regex (Python).
         path: Directory or file root (default '.')
         format: count|lines|context|full (default count)
         glob: Optional comma-separated globs to narrow search (supports **)
@@ -270,8 +221,7 @@ def better_grep(
         return _format_full(matches)
     return 'No matches found'
 
-
-better_grep_tool_def = ToolDefinition(
-    fn=better_grep,
-    usage_system_prompt=BETTER_GREP_SYSTEM_PROMPT,
+search_tool_def = ToolDefinition(
+    fn=search,
+    usage_system_prompt=SEARCH_SYSTEM_PROMPT,
 )

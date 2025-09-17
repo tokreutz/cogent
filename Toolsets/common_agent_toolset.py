@@ -2,7 +2,7 @@ from Tools.read_tool import read_tool_def
 from Tools.ls_tool import ls_tool_def
 from Tools.bash_tool import bash_tool_def
 from Tools.glob_tool import glob_tool_def
-from Tools.better_grep_tool import better_grep_tool_def
+from Tools.search_tool import search_tool_def
 from Tools.write_tool import write_tool_def
 from Tools.edit_tool import edit_tool_def
 from Tools.todo_write_tool import todo_write_tool_def
@@ -14,7 +14,7 @@ common_agent_tool_definitions = [
     ls_tool_def,
     bash_tool_def,
     glob_tool_def,
-    better_grep_tool_def,
+    search_tool_def,
     write_tool_def,
     edit_tool_def,
     todo_write_tool_def

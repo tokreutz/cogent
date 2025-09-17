@@ -14,7 +14,7 @@ Current functionality:
   - edit (exact string replacement with uniqueness safeguards)
   - ls (absolute path listing with ignore patterns)
   - grep (ripgrep wrapper with regex, glob, and type filtering)
-  - better_grep (structured code search: count|lines|context|full in escalating context order)
+  - search (minimal structured code search: count|lines|context|full in escalation order)
   - glob (mtime-sorted pattern matching)
 - Tools for advanced use
   - bash (persistent cwd, restricted from using grep/find/cat/head/tail/ls)
