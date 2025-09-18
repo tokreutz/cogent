@@ -1,7 +1,7 @@
 import os
 from fnmatch import fnmatch
 
-from Models.tool_definition import ToolDefinition
+from models.tool_definition import ToolDefinition
 
 LS_TOOL_SYSTEM_PROMPT = """Lists files and directories in a given path. The path parameter must be an absolute path, not a relative path. You can optionally provide an array of glob patterns to ignore with the ignore parameter. You should generally prefer the Glob and Search tools, if you know which directories to search.
 """

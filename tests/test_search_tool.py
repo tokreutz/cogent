@@ -5,7 +5,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from Tools.search_tool import search
+from tools.search_tool import search
 
 TEST_DIR = os.path.dirname(__file__)
 
@@ -83,7 +83,7 @@ def test_invalid_regex(tmp_path):
 
 def test_no_matches_metadata(tmp_path):
     # Create > MAX_FILES_SCANNED small files without pattern to trigger truncation then search absent pattern
-    from Tools.search_tool import MAX_FILES_SCANNED
+    from tools.search_tool import MAX_FILES_SCANNED
     for i in range(MAX_FILES_SCANNED + 10):
         (tmp_path / f'f{i}.txt').write_text('nothing to see')
     out = search(pattern='XYZ_NO_MATCH', path=str(tmp_path), format='lines')

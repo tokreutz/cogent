@@ -8,8 +8,8 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from Models.provider_config import load_providers_config, resolve_provider, build_chat_model, list_available_models
-from Models.model_state import save_last_selection, load_last_selection
+from models.provider_config import load_providers_config, resolve_provider, build_chat_model, list_available_models
+from models.model_state import save_last_selection, load_last_selection
 from cli import prompt as prompt_mod
 
 
@@ -34,7 +34,7 @@ def test_missing_required_key(monkeypatch, tmp_path):
     monkeypatch.delenv('OPENAI_API_KEY', raising=False)
     # Reload module to reset dotenv flag
     import importlib
-    from Models import provider_config as pc
+    from models import provider_config as pc
     importlib.reload(pc)
     with pytest.raises(RuntimeError) as e:
         pc.build_chat_model('openai')
@@ -87,7 +87,7 @@ def test_dotenv_auto_load(monkeypatch, tmp_path):
     tmp_path.joinpath('.env').write_text('OPENAI_API_KEY=sk-from-dotenv\n')
     # Force reload module to reset dotenv loaded flag
     import importlib
-    from Models import provider_config as pc
+    from models import provider_config as pc
     importlib.reload(pc)
     m = pc.build_chat_model('openai')
     assert m is not None  # did not raise missing key

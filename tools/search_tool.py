@@ -5,7 +5,7 @@ from typing import List, Dict, Tuple
 from pathspec import PathSpec
 from pathspec.patterns.gitwildmatch import GitWildMatchPattern
 
-from Models.tool_definition import ToolDefinition
+from models.tool_definition import ToolDefinition
 
 SEARCH_SYSTEM_PROMPT = """Minimal code search (least -> most context outputs).
 

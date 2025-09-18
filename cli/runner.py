@@ -2,9 +2,9 @@ import os
 import asyncio
 import argparse
 import logfire
-from Models.agent_deps import AgentDeps
 from cli.prompt import _get_state  # internal access for model switch state
-from Models.session_recorder import SessionRecorder
+from models.agent_deps import AgentDeps
+from models.session_recorder import SessionRecorder
 from main_agent import create_main_agent
 from .prompt import get_user_input, process_slash_commands
 

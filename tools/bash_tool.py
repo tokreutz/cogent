@@ -1,7 +1,7 @@
 from pydantic_ai import RunContext
 
-from Models.agent_deps import AgentDeps
-from Models.tool_definition import ToolDefinition
+from models.agent_deps import AgentDeps
+from models.tool_definition import ToolDefinition
 
 BASH_TOOL_SYSTEM_PROMPT = """Executes a given bash command in a persistent shell session with optional timeout, ensuring proper handling and security measures.
 

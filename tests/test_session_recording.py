@@ -9,7 +9,8 @@ def test_session_file_created_and_updated(tmp_path, monkeypatch):
 
     # Import runner pieces lazily
     runner = importlib.import_module('cli.runner')
-    recorder_mod = importlib.import_module('Models.session_recorder')
+    # Import via new lowercase package name
+    recorder_mod = importlib.import_module('models.session_recorder')
 
     # Create a recorder directly (avoid needing a real model call)
     recorder = recorder_mod.SessionRecorder(tmp_path)

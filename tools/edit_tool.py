@@ -1,4 +1,4 @@
-from Models.tool_definition import ToolDefinition
+from models.tool_definition import ToolDefinition
 
 EDIT_TOOL_SYSTEM_PROMPT = """Performs exact string replacements in files. 
 

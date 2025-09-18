@@ -1,12 +1,12 @@
 import os
 from pydantic_ai import Agent, RunContext
-from Models.provider_config import build_chat_model
-from Models.model_state import load_last_selection
+from models.provider_config import build_chat_model
+from models.model_state import load_last_selection
 
-from Toolsets.common_agent_toolset import common_agent_toolset, common_agent_tool_definitions
-from Toolsets.root_agent_toolset import root_agent_toolset, root_agent_tool_definitions
+from toolsets.common_agent_toolset import common_agent_toolset, common_agent_tool_definitions
+from toolsets.root_agent_toolset import root_agent_toolset, root_agent_tool_definitions
 from prompts import MAIN_SYSTEM_PROMPT
-from Models.agent_deps import AgentDeps
+from models.agent_deps import AgentDeps
 
 def create_main_agent(provider_name: str | None = None, model_name: str | None = None) -> Agent[AgentDeps]:
     # If not explicitly provided and no environment override, attempt to load last persisted selection

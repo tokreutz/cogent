@@ -1,4 +1,4 @@
-from Models.tool_definition import ToolDefinition
+from models.tool_definition import ToolDefinition
 
 WRITE_TOOL_SYSTEM_PROMPT = """Writes content to an absolute file path (creates directories as needed).
 

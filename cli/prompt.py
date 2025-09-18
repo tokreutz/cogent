@@ -4,8 +4,8 @@ import re
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Optional
-from Models.provider_config import list_available_models
-from Models.model_state import save_last_selection
+from models.provider_config import list_available_models
+from models.model_state import save_last_selection
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.key_binding import KeyBindings

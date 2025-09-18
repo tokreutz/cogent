@@ -154,3 +154,29 @@ Delete the state file or use a different selection to change this default.
 ### Prompt Model Indicator
 
 The interactive prompt displays the active model: `(model-name) >`. Long names (>40 chars) are truncated with an ellipsis. After switching models with `/model`, the prompt updates on the next input cycle.
+
+## Package Renames (Deprecation Notice)
+
+The top-level directories `Models/`, `Tools/`, and `Toolsets/` have been renamed to their PEP 8 compliant lowercase forms: `models/`, `tools/`, and `toolsets/`.
+
+Backward compatibility shims remain in place for one release cycle:
+
+- Importing `Models.*` will re-export from `models.*` and emit a `DeprecationWarning`.
+- Importing `Tools.*` will re-export from `tools.*` and emit a `DeprecationWarning`.
+- Importing `Toolsets.*` will re-export from `toolsets.*` and emit a `DeprecationWarning`.
+
+Please update your imports:
+
+```python
+# Old (deprecated)
+from Models.provider_config import build_chat_model
+from Tools.search_tool import search_tool_def
+from Toolsets.common_agent_toolset import common_agent_toolset
+
+# New
+from models.provider_config import build_chat_model
+from tools.search_tool import search_tool_def
+from toolsets.common_agent_toolset import common_agent_toolset
+```
+
+The legacy camel-cased package directories will be removed in a future release once the deprecation window ends. To surface the warnings during local development, run tests with `-W default` (pytest) or set the environment variable `PYTHONWARNINGS=default`.

@@ -1,6 +1,6 @@
 from pydantic_ai.toolsets import FunctionToolset
 
-from Tools.task_tool import SubAgentDefinition, create_task_tool_def, load_sub_agent_definitions
+from tools.task_tool import SubAgentDefinition, create_task_tool_def, load_sub_agent_definitions
 
 # Load custom agents from the Agents/ directory and ensure a general-purpose fallback
 _sub_agents = load_sub_agent_definitions()

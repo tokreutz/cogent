@@ -7,7 +7,7 @@ project_root = Path(__file__).resolve().parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from Models.session_recorder import SessionRecorder
+from models.session_recorder import SessionRecorder
 
 class DummyUsage:
     def __init__(self, input_tokens, output_tokens):

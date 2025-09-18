@@ -1,4 +1,4 @@
-from Models.tool_definition import ToolDefinition
+from models.tool_definition import ToolDefinition
 
 GLOB_TOOL_SYSTEM_PROMPT = """- Fast file pattern matching tool that works with any codebase size
 - Supports glob patterns like "**/*.js" or "src/**/*.ts"
